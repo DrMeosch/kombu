@@ -258,13 +258,14 @@ class Channel(virtual.Channel):
         messages = queue_obj.receiver.receive_messages(
             max_message_count=1,
             max_wait_time=timeout or self.wait_time_seconds)
-        renewer.register(queue_obj.receiver, messages, max_lock_renewal_duration=60)
 
         if not messages:
             raise Empty()
 
         # message.body is either byte or generator[bytes]
         message = messages[0]
+        renewer.register(queue_obj.receiver, messages, max_lock_renewal_duration=60)
+
         if not isinstance(message.body, bytes):
             body = b''.join(message.body)
         else:
