@@ -64,7 +64,7 @@ import azure.servicebus.exceptions
 import isodate
 from azure.servicebus import (ServiceBusClient, ServiceBusMessage,
                               ServiceBusReceiveMode, ServiceBusReceiver,
-                              ServiceBusSender)
+                              ServiceBusSender, AutoLockRenewer)
 from azure.servicebus.management import ServiceBusAdministrationClient
 
 from kombu.utils.encoding import bytes_to_str, safe_str
@@ -250,11 +250,15 @@ class Channel(virtual.Channel):
             if queue in self._noack_queues else ServiceBusReceiveMode.PEEK_LOCK
 
         queue = self.entity_name(self.queue_name_prefix + queue)
-
+        
+        # Can also be called via "with AutoLockRenewer() as renewer" to automate closing.
+        renewer = AutoLockRenewer()
+        
         queue_obj = self._get_asb_receiver(queue, recv_mode)
         messages = queue_obj.receiver.receive_messages(
             max_message_count=1,
             max_wait_time=timeout or self.wait_time_seconds)
+        renewer.register(queue_obj.receiver, messages, max_lock_renewal_duration=60)
 
         if not messages:
             raise Empty()
