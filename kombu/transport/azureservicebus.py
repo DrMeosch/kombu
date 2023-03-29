@@ -123,6 +123,7 @@ class Channel(virtual.Channel):
         self._policy = None
         self._sas_key = None
         self._connection_string = None
+        self.renewer = AutoLockRenewer()
 
         self._try_parse_connection_string()
 
@@ -264,7 +265,7 @@ class Channel(virtual.Channel):
 
         # message.body is either byte or generator[bytes]
         message = messages[0]
-        renewer.register(queue_obj.receiver, message, max_lock_renewal_duration=60)
+        self.renewer.register(queue_obj.receiver, message, max_lock_renewal_duration=60)
 
         if not isinstance(message.body, bytes):
             body = b''.join(message.body)
@@ -332,6 +333,7 @@ class Channel(virtual.Channel):
         return n
 
     def close(self) -> None:
+        self.renewer.close()
         # receivers and senders spawn threads so clean them up
         if not self.closed:
             self.closed = True
