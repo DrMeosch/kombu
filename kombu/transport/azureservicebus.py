@@ -264,7 +264,7 @@ class Channel(virtual.Channel):
 
         # message.body is either byte or generator[bytes]
         message = messages[0]
-        self.renewer.register(queue_obj.receiver, message)
+        self.renewer.register(queue_obj.receiver, message, max_lock_renewal_duration=60)
 
         if not isinstance(message.body, bytes):
             body = b''.join(message.body)
