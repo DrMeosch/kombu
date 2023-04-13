@@ -119,6 +119,9 @@ class Channel(virtual.Channel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        # Can also be called via "with AutoLockRenewer() as renewer" to automate closing.
+        self.renewer = AutoLockRenewer()
+
         self._namespace = None
         self._policy = None
         self._sas_key = None
@@ -250,9 +253,6 @@ class Channel(virtual.Channel):
             if queue in self._noack_queues else ServiceBusReceiveMode.PEEK_LOCK
 
         queue = self.entity_name(self.queue_name_prefix + queue)
-
-        # Can also be called via "with AutoLockRenewer() as renewer" to automate closing.
-        renewer = AutoLockRenewer()
 
         queue_obj = self._get_asb_receiver(queue, recv_mode)
         messages = queue_obj.receiver.receive_messages(
