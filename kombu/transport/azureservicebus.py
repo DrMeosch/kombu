@@ -62,7 +62,7 @@ import azure.servicebus.exceptions
 import isodate
 from azure.servicebus import (ServiceBusClient, ServiceBusMessage,
                               ServiceBusReceiveMode, ServiceBusReceiver,
-                              ServiceBusSender)
+                              ServiceBusSender, AutoLockRenewer)
 from azure.servicebus.management import ServiceBusAdministrationClient
 
 from kombu.utils.encoding import bytes_to_str, safe_str
@@ -251,6 +251,9 @@ class Channel(virtual.Channel):
 
         queue = self.entity_name(self.queue_name_prefix + queue)
 
+        # Can also be called via "with AutoLockRenewer() as renewer" to automate closing.
+        renewer = AutoLockRenewer()
+
         queue_obj = self._get_asb_receiver(queue, recv_mode)
         messages = queue_obj.receiver.receive_messages(
             max_message_count=1,
@@ -261,6 +264,8 @@ class Channel(virtual.Channel):
 
         # message.body is either byte or generator[bytes]
         message = messages[0]
+        self.renewer.register(queue_obj.receiver, message)
+
         if not isinstance(message.body, bytes):
             body = b''.join(message.body)
         else:
